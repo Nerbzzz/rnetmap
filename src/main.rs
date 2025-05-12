@@ -1,6 +1,6 @@
-use clap::{Parser, Subcommand};
+use std::net::{IpAddr, SocketAddr};
 use tokio::sync::mpsc;
-use util::parse_list;
+use clap::{Parser, Subcommand};
 
 mod port;
 mod util;
@@ -20,7 +20,7 @@ enum Commands {
         #[arg(value_name = "PORTS", help = "22,80,1000-1010")]
         ports: String,
 
-        #[arg(value_name = "HOST", help = "192.168.2.65/google.com")]
+        #[arg(value_name = "HOST", help = "10.0.0.1-10.0.0.4,10.0.0.5,10.0.0.0/28")]
         target: String,
     },
 }
@@ -30,30 +30,27 @@ async fn main() {
     let args = Cli::parse();
     match args.command {
         Commands::Port { ports, target } => {
-    
-            let parsed_ports = parse_list(&ports).expect("Failed to parse list");
-            let (tx, mut rx) = mpsc::channel::<u16>(100);
-            for chunk in parsed_ports.chunks(50) {
-                let chunk_vec = chunk.to_vec();
-                let tx_clone = tx.clone();
-                let addr_clone = target.clone();
 
-                tokio::spawn(async move {
-                    for port in chunk_vec {
-                        port::scan_port(tx_clone.clone(), &addr_clone, port).await;
-                    }
-                });
+            let parsed_ports: Vec<u16> = util::parse_ports(&ports).expect("Failed to parse list");
+            let parsed_ips: Vec<IpAddr> = util::parse_ips(&target).await.expect("Failed to parse hosts");
+
+            let (tx, mut rx) = mpsc::channel::<SocketAddr>(100);
+            for ip in parsed_ips {
+                for &port in &parsed_ports {
+                    let tx_clone = tx.clone();
+                    let addr = SocketAddr::new(ip, port);
+                    tokio::spawn(async move {
+                        port::scan_port(tx_clone, addr).await;
+                    });
+                }
             }
             drop(tx);
 
-            let mut open_ports = Vec::new();
-            while let Some(port) = rx.recv().await {
-                open_ports.push(port);
+            while let Some(open_addr) = rx.recv().await {
+                println!("Port {} is open on {}", open_addr.port(), open_addr.ip());
             }
-            open_ports.sort_unstable();
-            for port in open_ports {
-                println!("Port {} is open", port);
-            }
+
+
         }
     }
 }
