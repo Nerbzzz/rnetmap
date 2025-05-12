@@ -7,3 +7,5 @@ edition = "2021"
 tokio = { version = "1.45.0", features = ["full"] }
 serde = { version = "1.0.219", features = ["derive"] }
 clap = { version = "4.5.38", features = ["derive"] }
+ipnetwork = "0.21.1"
+thiserror = "2.0.12"
