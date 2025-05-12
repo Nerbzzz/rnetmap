@@ -2,7 +2,7 @@
 `rnetmap` is a lightweight, high-performance network port scanner written in Rust. It provides a simple CLI interface to scan individual ports or port ranges to a minimal subset of nmap's functionality.
 
 ## Features
-* Asynchronous, concurrent scanning of ports, comma-seperated lists, and hyphenated ranges (e.g. `22,80,1000-1010`)
+* Asynchronous, concurrent, and flexible port scanning
 
 ## Installation
 Ensure you have Rust and Cargo installed (Rust 1.80+ recommended):
